@@ -1,0 +1,20 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const studentControllers_1 = require("../controllers/studentControllers");
+const authMiddleWare_1 = require("../middleware/authMiddleWare");
+const studentValidator_1 = require("../validators/studentValidator");
+const router = express_1.default.Router();
+router.get("/", studentControllers_1.getStudents);
+router.get("/search", studentControllers_1.queryStudents);
+router.get("/count", studentControllers_1.getStudentCount);
+router.use(authMiddleWare_1.authenticate);
+router.get("/profile", studentControllers_1.getStudentProfile);
+router.get("/:id", studentControllers_1.getStudent);
+router.post("/", studentValidator_1.validateStudent, studentControllers_1.addStudent);
+router.put("/:id", studentValidator_1.validateStudent, studentControllers_1.editStudent);
+router.delete("/:id", studentControllers_1.removeStudent);
+exports.default = router;

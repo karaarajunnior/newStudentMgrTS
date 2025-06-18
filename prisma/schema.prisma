@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model courses {
+  id              String            @id @default(uuid())
+  course_unit     String
+  code            String            @unique
+  created_at      DateTime
+  lecturer_id     String
+  lecturer        lecturer          @relation(fields: [lecturer_id], references: [id])
+  student_courses student_courses[] @relation("courseEnrolled")
+
+  @@index([lecturer_id], map: "courses_lecturer_id_fkey")
+}
+
+model students {
+  id               String            @id @default(uuid())
+  firstname        String            @db.VarChar(25)
+  lastname         String            @db.VarChar(25)
+  tel              String            @unique
+  password         String            @db.VarChar(500)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  resetToken       String?           @db.VarChar(255)
+  resetTokenExpiry DateTime?
+  email            String?           @unique(map: "email") @db.VarChar(25)
+  student_courses  student_courses[] @relation("studentEnrolled")
+}
+
+model lecturer {
+  id              String            @id @default(uuid())
+  name            String            @db.VarChar(25)
+  created_at      DateTime          @default(now())
+  courses         courses[]
+  student_courses student_courses[] @relation("lecturer")
+}
+
+model student_courses {
+  id                String   @id @default(uuid())
+  enrollment_date   DateTime @default(now())
+  status            status   @default(active)
+  student_id        String
+  course_id         String
+  lecturer_id       String
+  course            courses  @relation("courseEnrolled", fields: [course_id], references: [id])
+  lecturer_assigned lecturer @relation("lecturer", fields: [lecturer_id], references: [id])
+  student           students @relation("studentEnrolled", fields: [student_id], references: [id])
+
+  @@unique([student_id, course_id, lecturer_id])
+  @@index([course_id], map: "student_courses_course_id_fkey")
+  @@index([lecturer_id], map: "student_courses_lecturer_id_fkey")
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum status {
+  active
+  completed
+  dropped
+}
