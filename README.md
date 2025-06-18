@@ -35,3 +35,4 @@ some validations
  <!--QUIZ-->
  Type Any is said to be avoided as much as possible, when should we use
  can the backend fetch data from its own to use it eg using fetch or axios
+ wildcarts, what does it mean
