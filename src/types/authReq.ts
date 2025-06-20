@@ -6,6 +6,6 @@ export interface AuthenticatedRequest extends Request {
 		tel: string;
 		firstname: string;
 		lastname?: string;
-		email?: string;
+		email?: string | null;
 	};
 }

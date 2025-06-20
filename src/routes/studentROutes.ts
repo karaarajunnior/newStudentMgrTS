@@ -1,25 +1,14 @@
 import express from "express";
 import {
-	getStudents,
-	addStudent,
-	editStudent,
-	removeStudent,
-	queryStudents,
-	getStudentCount,
-	getStudent,
+	signupStudent,
+	loginStudent,
+	logoutStudent,
 } from "../controllers/studentControllers";
-
-import { validateStudent } from "../validators/studentValidator";
 
 const router = express.Router();
 
-router.get("/", getStudents);
-router.get("/query", queryStudents);
-router.get("/count", getStudentCount);
-router.get("/student/:id", getStudent);
-
-router.post("/add", validateStudent, addStudent);
-router.put("/edit/:id", validateStudent, editStudent);
-router.delete("/:id", removeStudent);
+router.post("/signup", signupStudent);
+router.get("/login", loginStudent);
+router.post("/logout", logoutStudent);
 
 export default router;

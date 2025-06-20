@@ -18,14 +18,14 @@ const sendInvitation = async (req, res, next) => {
         const token = jsonwebtoken_1.default.sign({ email }, process.env.ACCESS_TOKEN, {
             expiresIn: "24h",
         });
-        await prisma.invitation.create({
+        const fetchToken = await prisma.invitation.create({
             data: {
                 email,
                 token,
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
             },
         });
-        const link = `http://localhost:5000/api/email/acceptinvite/${token}`;
+        const link = `http://localhost:5000/api/email/acceptinvite/${fetchToken.token}`;
         await resend.emails.send({
             from: `${process.env.APP_NAME} <hello@resend.dev>`,
             to: email,

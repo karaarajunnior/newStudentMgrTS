@@ -1,4 +1,4 @@
-import { CreateEmailOptions, CreateEmailRequestOptions, Resend } from "resend";
+import { CreateEmailOptions, Resend } from "resend";
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 

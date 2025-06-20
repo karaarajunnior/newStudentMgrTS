@@ -10,6 +10,9 @@ export const getStudents = async (
 ): Promise<any> => {
 	const students = await StudentService.getAllStudents();
 
+	if (students.length === 0)
+		throw new Error("Null database, create more students");
+
 	HttpResponse.success(res, 200, "Students retrieved successfully", {
 		count: students.length,
 		students,
@@ -23,14 +26,14 @@ export const getStudent = async (req: Request, res: Response): Promise<any> => {
 		return HttpResponse.error(res, 404, "Student not found");
 	}
 
-	HttpResponse.success(res, 200, "Student retrieved successfully", student);
+	HttpResponse.success(res, 200, "Student retrieved successfully \n", student);
 };
+// <!-- to be added after adding roles since this can be done by admin -->
+// export const addStudent = async (req: Request, res: Response): Promise<any> => {
+// 	const student = await StudentService.createStudent(req.body);
 
-export const addStudent = async (req: Request, res: Response): Promise<any> => {
-	const student = await StudentService.createStudent(req.body);
-
-	HttpResponse.success(res, 201, "Student created successfully", student);
-};
+// 	HttpResponse.success(res, 201, "Student created successfully", student);
+// };
 
 export const editStudent = async (
 	req: Request,
@@ -38,7 +41,12 @@ export const editStudent = async (
 ): Promise<any> => {
 	const student = await StudentService.updateStudent(req.params.id, req.body);
 
-	HttpResponse.success(res, 200, "Student updated successfully", student);
+	HttpResponse.success(
+		res,
+		200,
+		"Student updated successfully",
+		req.body + " " + student,
+	);
 };
 
 export const removeStudent = async (
@@ -61,7 +69,7 @@ export const queryStudents = async (
 	}
 	const students = await StudentService.searchStudents(
 		search as string,
-		parseInt(limit as string) || 10,
+		parseInt(limit as string),
 	);
 
 	HttpResponse.success(res, 200, "Students found", {
@@ -102,7 +110,8 @@ export const signupStudent = async (
 		await EmailService.sendWelcomeEmail(email);
 		console.log("an email has been sent");
 	} catch (error) {
-		console.error("Failed to send welcome email:", error);
+		console.error("Failed to send welcome email:");
+		throw error;
 	}
 
 	HttpResponse.success(res, 201, "Account created successfully", {
@@ -127,9 +136,8 @@ export const loginStudent = async (
 
 	const result = await StudentService.loginStudent(tel, password);
 
-	res.cookie("token", result.token, {
+	res.cookie("JWT", result.token, {
 		httpOnly: true,
-		//sameSite: "strict",
 		maxAge: 24 * 60 * 60 * 1000,
 	});
 

@@ -5,7 +5,7 @@ import studentRoutes from "./routes/studentROutes";
 import courseRoutes from "./routes/courseRoutes";
 import lecturerRoutes from "./routes/lecturerRoutes";
 import emailRoutes from "./routes/inviteRoutes";
-import authRoutes from "./routes/authRoutes";
+import authRoutes from "./routes/protectedRoutes";
 import { errorHandler } from "../src/middleware/errorHandler";
 
 dotenv.config();
@@ -36,10 +36,10 @@ export class App {
 	}
 
 	private routes() {
+		this.app.use("/api/auth", authRoutes);
 		this.app.use("/api/students", studentRoutes);
 		this.app.use("/api/courses", courseRoutes);
 		this.app.use("/api/lecturer", lecturerRoutes);
-		this.app.use("/api/auth", authRoutes);
 		this.app.use("/api/email", emailRoutes);
 		this.app.get("/api/health", (req, res) => {
 			res.send("good to go");

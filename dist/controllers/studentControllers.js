@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.changePassword = exports.getCurrentStudent = exports.resetPassword = exports.forgotPassword = exports.logoutStudent = exports.loginStudent = exports.signupStudent = exports.getStudentCount = exports.queryStudents = exports.removeStudent = exports.editStudent = exports.addStudent = exports.getStudent = exports.getStudents = void 0;
 const StudentService_1 = __importDefault(require("../services/StudentService"));
 const HttpResponse_1 = __importDefault(require("../utils/HttpResponse"));
+const emailService_1 = __importDefault(require("../services/emailService"));
 const getStudents = async (req, res) => {
     const students = await StudentService_1.default.getAllStudents();
     HttpResponse_1.default.success(res, 200, "Students retrieved successfully", {
@@ -67,6 +68,13 @@ const signupStudent = async (req, res) => {
         email,
         password,
     });
+    try {
+        await emailService_1.default.sendWelcomeEmail(email);
+        console.log("an email has been sent");
+    }
+    catch (error) {
+        console.error("Failed to send welcome email:", error);
+    }
     HttpResponse_1.default.success(res, 201, "Account created successfully", {
         student,
         message: "Please login with your credentials",

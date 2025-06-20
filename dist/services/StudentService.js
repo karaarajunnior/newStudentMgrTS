@@ -72,15 +72,8 @@ const createStudent = async (studentData) => {
     });
     if (existingStudent)
         throw new Error("Student already exists");
-    try {
-        await emailService_1.default.sendWelcomeEmail(email);
-        console.log("an email has been sent");
-    }
-    catch (error) {
-        console.error("Failed to send welcome email:", error);
-    }
-    const hashedPassword = await bcrypt_1.default.hash(password, 10);
-    return await prisma.students.create({
+    const hashedPassword = await bcrypt_1.default.hash(password, 2);
+    await prisma.students.create({
         data: {
             firstname,
             lastname,
@@ -96,6 +89,13 @@ const createStudent = async (studentData) => {
             email: true,
         },
     });
+    try {
+        await emailService_1.default.sendWelcomeEmail(email);
+        console.log("an email has been sent");
+    }
+    catch (error) {
+        console.error("Failed to send welcome email:", error);
+    }
 };
 const updateStudent = async (id, studentData) => {
     const updateData = {

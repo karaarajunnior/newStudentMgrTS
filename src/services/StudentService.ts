@@ -137,9 +137,10 @@ const deleteStudent = async (id: string) => {
 
 	if (enrollments.length > 0) {
 		throw new Error("Cannot delete student with existing course enrollments");
+	} else {
+		await prisma.students.delete({ where: { id } });
 	}
 
-	await prisma.students.delete({ where: { id } });
 	return { message: "Student deleted successfully" };
 };
 
@@ -166,25 +167,30 @@ const searchStudents = async (searchTerm: string, limit: number = 10) => {
 
 const loginStudent = async (tel: string, password: string) => {
 	const student = await prisma.students.findUnique({ where: { tel } });
+	if (!student) throw new Error("tel  is wrong");
 
-	const isPasswordValid = await bcrypt.compare(password, student!.password);
-	if (!isPasswordValid || !student) throw new Error("Invalid credentials");
+	const isPasswordvalid = await bcrypt.compare(password, student.password);
+	if (!isPasswordvalid) throw new Error("password is invalid");
 
 	const token = jwt.sign(
 		{
 			id: student.id,
 			tel: student.tel,
-			firstname: student.firstname,
-			lastname: student.lastname,
-			email: student.email,
+			firstname: student.firstname.concat(student.lastname),
 		},
 		process.env.ACCESS_TOKEN!,
 		{
-			expiresIn: "24h",
+			expiresIn: "1h",
 		},
 	);
-
-	return { token };
+	return {
+		token,
+		user: {
+			id: student.id,
+			tel: student.tel,
+			firstname: student.firstname.concat(student.lastname),
+		},
+	};
 };
 
 const getCurrentStudent = async (studentId: string) => {
@@ -209,39 +215,32 @@ const getCurrentStudent = async (studentId: string) => {
 };
 
 const generateResetToken = async (email: string) => {
+	if (!email) return "email amust";
+
 	const student = await prisma.students.findUnique({
 		where: { email },
 	});
 
-	if (!student) return "No account";
-
-	const resetToken = crypto.randomBytes(64).toString("hex");
-	const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+	if (!student) return "No account with that email";
 
 	const getToken = await prisma.students.update({
 		where: { email },
 		data: {
-			resetToken,
-			resetTokenExpiry,
+			resetToken: crypto.randomBytes(64).toString("hex"),
+			resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
 		},
 	});
 
-	await EmailService.sendPasswordResetEmail(email, student.lastname || "");
 	return getToken.resetToken;
 };
 
-const resetPassword = async (token: string, newPassword: string) => {
-	const student = await prisma.students.findFirst({
-		where: {
-			resetToken: token,
-			resetTokenExpiry: {
-				gt: new Date(),
-			},
-		},
-	});
+const resetPassword = async (password: string, newPassword: string) => {
+	if (!password || !newPassword) return "All fields mandatory";
+
+	const student = await prisma.students.findFirst({ where: { password } });
 
 	if (!student) {
-		throw new Error("Password reset token is invalid or has expired");
+		throw new Error("incorrect password, student with it not found");
 	}
 
 	const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -250,11 +249,8 @@ const resetPassword = async (token: string, newPassword: string) => {
 		where: { id: student.id },
 		data: {
 			password: hashedPassword,
-			resetToken: null,
-			resetTokenExpiry: null,
 		},
 	});
-
 	return "Password reset successfully";
 };
 
