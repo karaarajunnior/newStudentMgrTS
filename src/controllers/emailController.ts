@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import HttpResponse from "../utils/HttpResponse";
 import { PrismaClient } from "@prisma/client";
-import { AuthenticatedRequest } from "../types/authReq";
+import { AuthenticatedRequest } from "../types/authStudent";
 import jwt from "jsonwebtoken";
 import { Resend } from "resend";
 const resend = new Resend(process.env.STUDENT_MGR_API);

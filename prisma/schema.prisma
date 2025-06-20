@@ -13,10 +13,12 @@ model courses {
   code            String            @unique
   created_at      DateTime
   lecturer_id     String
+  student_id      String
   lecturer        lecturer          @relation(fields: [lecturer_id], references: [id])
+  student         students          @relation(fields: [student_id], references: [id])
   student_courses student_courses[] @relation("courseEnrolled")
 
-  @@index([lecturer_id], map: "courses_lecturer_id_fkey")
+  @@index([lecturer_id, student_id])
 }
 
 model students {
@@ -29,8 +31,10 @@ model students {
   updated_at       DateTime          @updatedAt
   resetToken       String?           @db.VarChar(255)
   resetTokenExpiry DateTime?
+  role             String            @default("STUDENT")
   email            String?           @unique(map: "email") @db.VarChar(25)
   student_courses  student_courses[] @relation("studentEnrolled")
+  courses          courses[]
 }
 
 model lecturer {
@@ -38,6 +42,7 @@ model lecturer {
   name            String            @db.VarChar(25)
   created_at      DateTime          @default(now())
   courses         courses[]
+  role            String            @default("LECTURER")
   student_courses student_courses[] @relation("lecturer")
 }
 
@@ -69,4 +74,10 @@ enum status {
   active
   completed
   dropped
+}
+
+enum role {
+  STUDENT
+  LECTURER
+  ADMIN
 }

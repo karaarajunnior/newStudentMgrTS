@@ -2,7 +2,7 @@ import { PrismaClient, students } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const createlecturer = async (name) => {
+const createlecturer = async (name: string, role?: string) => {
 	if (!name) {
 		throw new Error("name required ");
 	}
@@ -18,11 +18,13 @@ const createlecturer = async (name) => {
 	return await prisma.lecturer.create({
 		data: {
 			name,
+			role,
 		},
 		select: {
 			id: true,
 			name: true,
 			created_at: true,
+			role: true,
 		},
 	});
 };

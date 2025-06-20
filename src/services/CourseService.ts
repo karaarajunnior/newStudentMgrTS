@@ -58,14 +58,14 @@ const getCourseById = async (courseId: string) => {
 };
 
 const createCourse = async (courseData: any) => {
-	const { course_unit, code, created_at, lecturer_id } = courseData;
+	const { course_unit, code, created_at, lecturer_id, student_id } = courseData;
 
-	if (!course_unit || !code) {
+	if (!course_unit || !student_id) {
 		throw new Error("Course unit and code are mandatory");
 	}
 
-	const existingCourse = await getCourseByCode(code);
-	if (existingCourse) {
+	const existingCourse = await getCourseByCode(student_id);
+	if (existingCourse?.lecturer_id) {
 		throw new Error("Course with this code already exists");
 	}
 
@@ -81,9 +81,9 @@ const createCourse = async (courseData: any) => {
 	return result;
 };
 
-const getCourseByCode = async (code: string) => {
+const getCourseByCode = async (student_id: string) => {
 	const rows = await prisma.courses.findUnique({
-		where: { code: code },
+		where: { : code },
 	});
 	return rows;
 };

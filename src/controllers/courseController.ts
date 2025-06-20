@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import CourseService from "../services/CourseService";
 import HttpResponse from "../utils/HttpResponse";
-import { AuthenticatedRequest } from "../types/authReq";
+import { AuthenticatedRequest } from "../types/authStudent";
 
 const getCourseById = async (req: Request, res: Response): Promise<any> => {
 	const { id } = req.params;
@@ -49,13 +49,13 @@ const getStudentCourses = async (req: Request, res: Response): Promise<any> => {
 };
 
 const getCourseByCode = async (req: Request, res: Response): Promise<any> => {
-	const { code } = req.params;
+	const { student_id } = req.params;
 
-	if (!code) {
+	if (!student_id) {
 		return HttpResponse.error(res, 400, "Course code is required");
 	}
 
-	const course = await CourseService.getCourseByCode(code);
+	const course = await CourseService.getCourseByCode(student_id);
 
 	if (!course) {
 		return HttpResponse.error(res, 404, "Course not found");

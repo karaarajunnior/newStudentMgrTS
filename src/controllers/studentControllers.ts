@@ -1,7 +1,7 @@
 import StudentService from "../services/StudentService";
 import { Request, Response } from "express";
 import HttpResponse from "../utils/HttpResponse";
-import { AuthenticatedRequest } from "../types/authReq";
+import { AuthenticatedRequest } from "../types/authStudent";
 import EmailService from "../services/emailService";
 
 export const getStudents = async (
@@ -153,6 +153,7 @@ export const logoutStudent = async (
 ): Promise<any> => {
 	res.clearCookie("token");
 
+	// res.redirect("http://localhost:5000/api/students/login");
 	HttpResponse.success(res, 200, "Logged out successfully");
 };
 

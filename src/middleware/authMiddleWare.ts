@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
-import { AuthenticatedRequest } from "../types/authReq";
+import { AuthenticatedRequest } from "../types/authStudent";
 
 dotenv.config();
 const prisma = new PrismaClient();
