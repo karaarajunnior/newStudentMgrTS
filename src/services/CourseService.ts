@@ -83,7 +83,7 @@ const createCourse = async (courseData: any) => {
 
 const getCourseByCode = async (student_id: string) => {
 	const rows = await prisma.courses.findUnique({
-		where: { : code },
+		where: { id: student_id },
 	});
 	return rows;
 };
