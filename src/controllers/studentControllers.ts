@@ -3,6 +3,10 @@ import { Request, Response } from "express";
 import HttpResponse from "../utils/HttpResponse";
 import { AuthenticatedRequest } from "../types/authStudent";
 import EmailService from "../services/emailService";
+import bcrypt from "bcrypt";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const getStudents = async (
 	req: Request,
@@ -15,7 +19,7 @@ export const getStudents = async (
 
 	HttpResponse.success(res, 200, "Students retrieved successfully", {
 		count: students.length,
-		students,
+		info: students,
 	});
 };
 
@@ -39,14 +43,27 @@ export const editStudent = async (
 	req: Request,
 	res: Response,
 ): Promise<any> => {
-	const student = await StudentService.updateStudent(req.params.id, req.body);
+	try {
+		const { firstname, lastname, tel, email, password } = req.body;
+		const values = {
+			firstname,
+			lastname,
+			tel,
+			email,
+			password,
+		};
+		const student = await StudentService.updateStudent(req.params.id, values);
 
-	HttpResponse.success(
-		res,
-		200,
-		"Student updated successfully",
-		req.body + " " + student,
-	);
+		return HttpResponse.success(
+			res,
+			200,
+			"Student updated successfully",
+			student,
+		);
+	} catch (error) {
+		return HttpResponse.error(res, 400, "failed to update studate details");
+		throw error;
+	}
 };
 
 export const removeStudent = async (
@@ -114,6 +131,8 @@ export const signupStudent = async (
 		throw error;
 	}
 
+	await StudentService.generateResetToken(email);
+
 	HttpResponse.success(res, 201, "Account created successfully", {
 		student,
 		message: "Please login with your credentials",
@@ -138,7 +157,7 @@ export const loginStudent = async (
 
 	res.cookie("JWT", result.token, {
 		httpOnly: true,
-		maxAge: 24 * 60 * 60 * 1000,
+		maxAge: 1 * 60 * 1000,
 	});
 
 	HttpResponse.success(res, 200, "Login successful", {
@@ -151,9 +170,8 @@ export const logoutStudent = async (
 	req: Request,
 	res: Response,
 ): Promise<any> => {
-	res.clearCookie("token");
-
-	// res.redirect("http://localhost:5000/api/students/login");
+	res.cookie("JWT", " ", { maxAge: 1 });
+	//res.clearCookie("JWT");
 	HttpResponse.success(res, 200, "Logged out successfully");
 };
 
@@ -174,27 +192,11 @@ export const forgotPassword = async (
 	});
 };
 
-export const resetPassword = async (
-	req: Request,
-	res: Response,
-): Promise<any> => {
-	const { token } = req.params;
-	const { password } = req.body;
-
-	if (!password) {
-		return HttpResponse.error(res, 400, "New password is required");
-	}
-
-	const result = await StudentService.resetPassword(token, password);
-
-	HttpResponse.success(res, 200, "Password reset successful", result);
-};
-
 export const getCurrentStudent = async (
 	req: AuthenticatedRequest,
 	res: Response,
 ): Promise<any> => {
-	const student = await StudentService.getCurrentStudent(req.user!.id);
+	const student = await StudentService.getCurrentStudent(req.user!.tel);
 
 	if (!student) {
 		return HttpResponse.error(res, 404, "Student profile not found");
@@ -203,7 +205,6 @@ export const getCurrentStudent = async (
 	HttpResponse.success(res, 200, "Profile retrieved successfully", student);
 };
 
-//>>>>>>>>>>>>>
 export const changePassword = async (
 	req: AuthenticatedRequest,
 	res: Response,
@@ -212,41 +213,43 @@ export const changePassword = async (
 		return HttpResponse.error(res, 401, "Authentication required");
 	}
 
-	const { currentPassword, newPassword } = req.body;
+	const { newPassword } = req.body;
+	const { token } = req.params;
 
-	if (!currentPassword || !newPassword) {
-		return HttpResponse.error(
-			res,
-			400,
-			"Current password and new password are required",
-		);
+	const isTokenValid = await StudentService.verifyToken(token);
+	if (!isTokenValid) throw new Error("token invalid or expired");
+	res.status(200).json({ message: "Token is valid" });
+
+	if (!newPassword) {
+		return HttpResponse.error(res, 400, "New password required");
 	}
 
-	if (newPassword.length < 6) {
-		return HttpResponse.error(
-			res,
-			400,
-			"New password must be at least 6 characters long",
-		);
-	}
+	const student = await prisma.students.findFirst({
+		where: {
+			resetToken: token,
+			resetTokenExpiry: { gte: new Date() },
+		},
+	});
 
-	const student = await StudentService.getSingleStudent(req.user.id);
-	if (!student) {
-		return HttpResponse.error(res, 404, "Student not found");
-	}
-
-	const bcrypt = require("bcrypt");
 	const isCurrentPasswordValid = await bcrypt.compare(
-		currentPassword,
-		student.password,
+		newPassword,
+		student!.password,
 	);
 	if (!isCurrentPasswordValid) {
 		return HttpResponse.error(res, 400, "Current password is incorrect");
 	}
 
-	await StudentService.updateStudent(req.user.id, {
-		...req.body,
-		password: newPassword,
+	const newPasswordHash = bcrypt.hash(newPassword, 10);
+	await prisma.students.update({
+		where: {
+			id: req.user?.tel,
+		},
+		data: {
+			...req.body,
+			password: newPasswordHash,
+			resetToken: null,
+			resetTokenExpiry: null,
+		},
 	});
 
 	HttpResponse.success(res, 200, "Password changed successfully");

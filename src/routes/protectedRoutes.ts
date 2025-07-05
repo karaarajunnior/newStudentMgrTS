@@ -1,6 +1,5 @@
 import express from "express";
 import {
-	resetPassword,
 	editStudent,
 	removeStudent,
 	getStudent,
@@ -15,6 +14,7 @@ import { authenticate } from "../middleware/authMiddleWare";
 import { ensureAutheticated } from "../middleware/ensureAutheticated";
 
 const router = express.Router();
+router.post("/logout", logoutStudent);
 
 router.use(authenticate);
 
@@ -25,7 +25,5 @@ router.get("/count", getStudentCount);
 router.get("/student/:id", getStudent);
 router.put("/edit/:id", validateStudent, editStudent);
 router.delete("/:id", removeStudent);
-router.post("/logout", logoutStudent);
-router.post("/resetPassword/:token", resetPassword);
 
 export default router;

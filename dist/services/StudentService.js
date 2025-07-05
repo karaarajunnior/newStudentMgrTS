@@ -24,7 +24,11 @@ const getAllStudents = async () => {
             tel: true,
             email: true,
             created_at: true,
-            updated_at: true,
+        },
+        skip: 0,
+        take: 10,
+        orderBy: {
+            firstname: "desc",
         },
     });
 };
@@ -42,18 +46,6 @@ const getSingleStudent = async (id, tel, email) => {
                     email,
                 },
             ].filter(Boolean),
-        },
-        select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            tel: true,
-            email: true,
-            password: true,
-            resetToken: true,
-            resetTokenExpiry: true,
-            created_at: true,
-            updated_at: true,
         },
     });
 };
@@ -81,13 +73,6 @@ const createStudent = async (studentData) => {
             email,
             password: hashedPassword,
         },
-        select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            tel: true,
-            email: true,
-        },
     });
     try {
         await emailService_1.default.sendWelcomeEmail(email);
@@ -101,6 +86,7 @@ const updateStudent = async (id, studentData) => {
     const updateData = {
         updated_at: new Date(),
     };
+    console.log("setting new details");
     if (studentData.firstname)
         updateData.firstname = studentData.firstname;
     if (studentData.lastname)
@@ -110,18 +96,13 @@ const updateStudent = async (id, studentData) => {
     if (studentData.email)
         updateData.email = studentData.email;
     if (studentData.password) {
-        updateData.password = await bcrypt_1.default.hash(studentData.password, 10);
+        console.log("password hashing");
+        updateData.password = await bcrypt_1.default.hash(studentData.password, 2);
+        console.log("password hashed success");
     }
-    return await prisma.students.update({
+    await prisma.students.update({
         where: { id },
         data: updateData,
-        select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            tel: true,
-            email: true,
-        },
     });
 };
 const deleteStudent = async (id) => {
@@ -131,7 +112,9 @@ const deleteStudent = async (id) => {
     if (enrollments.length > 0) {
         throw new Error("Cannot delete student with existing course enrollments");
     }
-    await prisma.students.delete({ where: { id } });
+    else {
+        await prisma.students.delete({ where: { id } });
+    }
     return { message: "Student deleted successfully" };
 };
 const searchStudents = async (searchTerm, limit = 10) => {
@@ -156,19 +139,24 @@ const searchStudents = async (searchTerm, limit = 10) => {
 };
 const loginStudent = async (tel, password) => {
     const student = await prisma.students.findUnique({ where: { tel } });
-    const isPasswordValid = await bcrypt_1.default.compare(password, student.password);
-    if (!isPasswordValid || !student)
-        throw new Error("Invalid credentials");
+    if (!student)
+        throw new Error("tel  is wrong");
+    const isPasswordvalid = await bcrypt_1.default.compare(password, student.password);
+    if (!isPasswordvalid)
+        throw new Error("password is invalid");
     const token = jsonwebtoken_1.default.sign({
         id: student.id,
         tel: student.tel,
-        firstname: student.firstname,
-        lastname: student.lastname,
-        email: student.email,
+        firstname: student.firstname.concat(student.lastname),
     }, process.env.ACCESS_TOKEN, {
-        expiresIn: "24h",
+        expiresIn: "1m",
     });
-    return { token };
+    return {
+        token,
+        user: {
+            firstname: student.firstname.concat(student.lastname),
+        },
+    };
 };
 const getCurrentStudent = async (studentId) => {
     const student = await prisma.students.findUnique({
@@ -189,49 +177,41 @@ const getCurrentStudent = async (studentId) => {
     return student;
 };
 const generateResetToken = async (email) => {
+    if (!email)
+        return "email amust";
     const student = await prisma.students.findUnique({
         where: { email },
     });
     if (!student)
-        return "No account";
+        return "No account with that email";
     const resetToken = crypto_1.default.randomBytes(64).toString("hex");
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
     const getToken = await prisma.students.update({
         where: { email },
         data: {
-            resetToken,
-            resetTokenExpiry,
+            resetToken: crypto_1.default.createHash("sha256").update(resetToken).digest("hex"),
+            resetTokenExpiry: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        },
+        select: {
+            resetToken: true,
+            resetTokenExpiry: true,
         },
     });
-    await emailService_1.default.sendPasswordResetEmail(email, student.lastname || "");
-    return getToken.resetToken;
+    console.log(resetToken, " ", " ", getToken.resetToken);
+    return getToken.resetToken, getToken.resetToken;
 };
-const resetPassword = async (token, newPassword) => {
-    const student = await prisma.students.findFirst({
+const verifyToken = async (resetToken) => {
+    const findToken = await prisma.students.findFirst({
         where: {
-            resetToken: token,
-            resetTokenExpiry: {
-                gt: new Date(),
-            },
+            resetToken,
+            resetTokenExpiry: { gte: new Date() },
         },
     });
-    if (!student) {
-        throw new Error("Password reset token is invalid or has expired");
-    }
-    const hashedPassword = await bcrypt_1.default.hash(newPassword, 10);
-    await prisma.students.update({
-        where: { id: student.id },
-        data: {
-            password: hashedPassword,
-            resetToken: null,
-            resetTokenExpiry: null,
-        },
-    });
-    return "Password reset successfully";
+    return findToken?.resetToken;
 };
 exports.default = {
     validateStudentExists,
     getAllStudents,
+    verifyToken,
     getSingleStudent,
     getStudentCount,
     loginStudent,
@@ -241,5 +221,4 @@ exports.default = {
     searchStudents,
     getCurrentStudent,
     generateResetToken,
-    resetPassword,
 };

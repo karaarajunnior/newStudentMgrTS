@@ -15,10 +15,11 @@ model courses {
   lecturer_id     String
   student_id      String
   lecturer        lecturer          @relation(fields: [lecturer_id], references: [id])
-  student         students          @relation(fields: [student_id], references: [id])
+  student         students?         @relation(fields: [student_id], references: [id])
   student_courses student_courses[] @relation("courseEnrolled")
 
-  @@index([lecturer_id, student_id])
+  @@index([lecturer_id])
+  @@index([student_id])
 }
 
 model students {
@@ -32,7 +33,7 @@ model students {
   resetToken       String?           @db.VarChar(255)
   resetTokenExpiry DateTime?
   role             String            @default("STUDENT")
-  email            String?           @unique(map: "email") @db.VarChar(25)
+  email            String            @unique(map: "email") @db.VarChar(55)
   student_courses  student_courses[] @relation("studentEnrolled")
   courses          courses[]
 }
@@ -65,9 +66,26 @@ model student_courses {
 model Invitation {
   id        String   @id @default(uuid())
   email     String   @unique
-  token     String   @unique
+  token     String   @db.Text
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model User {
+  id         Int      @unique @default(autoincrement())
+  name       String
+  email      String   @unique
+  password   String
+  otp        Int
+  otpexpiry  DateTime
+  Isverified Boolean?
+}
+
+model otpVerification {
+  id     Int      @unique @default(autoincrement())
+  owner  String
+  expiry DateTime
+  token  String
 }
 
 enum status {

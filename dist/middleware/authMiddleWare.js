@@ -15,22 +15,21 @@ const authenticate = async (req, res, next) => {
     if (!token) {
         token = req.cookies?.token;
     }
-    // if (!token) {
-    // 	res.status(401).json({
-    // 		success: false,
-    // 		message: "Access denied. No token provided.",
-    // 	});
-    // 	return;
-    // }
+    if (!token) {
+        res.status(401).json({
+            success: false,
+            message: "Access denied. No token provided.",
+        });
+    }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN);
         const user = await prisma.students.findUnique({
             where: { id: decoded.id },
             select: {
                 id: true,
+                tel: true,
                 firstname: true,
                 lastname: true,
-                tel: true,
                 email: true,
             },
         });

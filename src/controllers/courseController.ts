@@ -65,7 +65,7 @@ const getCourseByCode = async (req: Request, res: Response): Promise<any> => {
 };
 
 const createCourse = async (req: Request, res: Response): Promise<any> => {
-	const { course_unit, code, lecturer_id } = req.body;
+	const { course_unit, code, lecturer_id, student_id } = req.body;
 
 	if (!course_unit || !code) {
 		return HttpResponse.error(res, 400, "Course unit and code are required");
@@ -76,6 +76,7 @@ const createCourse = async (req: Request, res: Response): Promise<any> => {
 			course_unit,
 			code,
 			lecturer_id,
+			student_id,
 		});
 
 		HttpResponse.success(res, 201, "Course created successfully", {
@@ -209,7 +210,7 @@ const unenrollFromCourse = async (
 	}
 
 	try {
-		await CourseService.unenrollStudent(studentId, courseId);
+		await CourseService.unenrollStudent(studentId!, courseId);
 
 		HttpResponse.success(res, 200, "Unenrollment successful", {
 			message: "You have been successfully unenrolled from the course",
@@ -298,7 +299,7 @@ const getEnrollmentStatus = async (
 	}
 
 	const enrollment = await CourseService.getEnrollmentStatus(
-		studentId,
+		studentId!,
 		courseId,
 	);
 

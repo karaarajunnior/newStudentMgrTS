@@ -75,6 +75,7 @@ const createCourse = async (courseData: any) => {
 			code,
 			created_at: new Date(),
 			lecturer_id,
+			student_id,
 		},
 	});
 

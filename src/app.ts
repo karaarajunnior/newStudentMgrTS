@@ -5,8 +5,11 @@ import studentRoutes from "./routes/studentROutes";
 import courseRoutes from "./routes/courseRoutes";
 import lecturerRoutes from "./routes/lecturerRoutes";
 import emailRoutes from "./routes/inviteRoutes";
+import userRoutes from "./users/userRoutes";
 import authRoutes from "./routes/protectedRoutes";
+import uploadrouter from "../src/routes/lecturerRoutes";
 import { errorHandler } from "../src/middleware/errorHandler";
+import { join } from "path";
 
 dotenv.config();
 const app = express();
@@ -36,11 +39,14 @@ export class App {
 	}
 
 	private routes() {
+		//app.use("/uploads", express.static(join(__dirname, "/uploads")));
+
 		this.app.use("/api/auth", authRoutes);
 		this.app.use("/api/students", studentRoutes);
 		this.app.use("/api/courses", courseRoutes);
 		this.app.use("/api/lecturer", lecturerRoutes);
 		this.app.use("/api/email", emailRoutes);
+		this.app.use("/api/user", userRoutes);
 		this.app.get("/api/health", (req, res) => {
 			res.send("good to go");
 		});

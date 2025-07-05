@@ -3,15 +3,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePassword = exports.getCurrentStudent = exports.resetPassword = exports.forgotPassword = exports.logoutStudent = exports.loginStudent = exports.signupStudent = exports.getStudentCount = exports.queryStudents = exports.removeStudent = exports.editStudent = exports.addStudent = exports.getStudent = exports.getStudents = void 0;
+exports.changePassword = exports.getCurrentStudent = exports.forgotPassword = exports.logoutStudent = exports.loginStudent = exports.signupStudent = exports.getStudentCount = exports.queryStudents = exports.removeStudent = exports.editStudent = exports.getStudent = exports.getStudents = void 0;
 const StudentService_1 = __importDefault(require("../services/StudentService"));
 const HttpResponse_1 = __importDefault(require("../utils/HttpResponse"));
 const emailService_1 = __importDefault(require("../services/emailService"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 const getStudents = async (req, res) => {
     const students = await StudentService_1.default.getAllStudents();
+    if (students.length === 0)
+        throw new Error("Null database, create more students");
     HttpResponse_1.default.success(res, 200, "Students retrieved successfully", {
         count: students.length,
-        students,
+        info: students,
     });
 };
 exports.getStudents = getStudents;
@@ -20,17 +25,31 @@ const getStudent = async (req, res) => {
     if (!student) {
         return HttpResponse_1.default.error(res, 404, "Student not found");
     }
-    HttpResponse_1.default.success(res, 200, "Student retrieved successfully", student);
+    HttpResponse_1.default.success(res, 200, "Student retrieved successfully \n", student);
 };
 exports.getStudent = getStudent;
-const addStudent = async (req, res) => {
-    const student = await StudentService_1.default.createStudent(req.body);
-    HttpResponse_1.default.success(res, 201, "Student created successfully", student);
-};
-exports.addStudent = addStudent;
+// <!-- to be added after adding roles since this can be done by admin -->
+// export const addStudent = async (req: Request, res: Response): Promise<any> => {
+// 	const student = await StudentService.createStudent(req.body);
+// 	HttpResponse.success(res, 201, "Student created successfully", student);
+// };
 const editStudent = async (req, res) => {
-    const student = await StudentService_1.default.updateStudent(req.params.id, req.body);
-    HttpResponse_1.default.success(res, 200, "Student updated successfully", student);
+    try {
+        const { firstname, lastname, tel, email, password } = req.body;
+        const values = {
+            firstname,
+            lastname,
+            tel,
+            email,
+            password,
+        };
+        const student = await StudentService_1.default.updateStudent(req.params.id, values);
+        return HttpResponse_1.default.success(res, 200, "Student updated successfully", student);
+    }
+    catch (error) {
+        return HttpResponse_1.default.error(res, 400, "failed to update studate details");
+        throw error;
+    }
 };
 exports.editStudent = editStudent;
 const removeStudent = async (req, res) => {
@@ -43,7 +62,7 @@ const queryStudents = async (req, res) => {
     if (!search) {
         return HttpResponse_1.default.error(res, 400, "Search term is required");
     }
-    const students = await StudentService_1.default.searchStudents(search, parseInt(limit) || 10);
+    const students = await StudentService_1.default.searchStudents(search, parseInt(limit));
     HttpResponse_1.default.success(res, 200, "Students found", {
         count: students.length,
         students,
@@ -73,8 +92,10 @@ const signupStudent = async (req, res) => {
         console.log("an email has been sent");
     }
     catch (error) {
-        console.error("Failed to send welcome email:", error);
+        console.error("Failed to send welcome email:");
+        throw error;
     }
+    await StudentService_1.default.generateResetToken(email);
     HttpResponse_1.default.success(res, 201, "Account created successfully", {
         student,
         message: "Please login with your credentials",
@@ -87,10 +108,9 @@ const loginStudent = async (req, res) => {
         return HttpResponse_1.default.error(res, 400, "Phone number and password are required");
     }
     const result = await StudentService_1.default.loginStudent(tel, password);
-    res.cookie("token", result.token, {
+    res.cookie("JWT", result.token, {
         httpOnly: true,
-        //sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 1 * 60 * 1000,
     });
     HttpResponse_1.default.success(res, 200, "Login successful", {
         token: result.token,
@@ -99,7 +119,8 @@ const loginStudent = async (req, res) => {
 };
 exports.loginStudent = loginStudent;
 const logoutStudent = async (req, res) => {
-    res.clearCookie("token");
+    res.cookie("JWT", " ", { maxAge: 1 });
+    //res.clearCookie("JWT");
     HttpResponse_1.default.success(res, 200, "Logged out successfully");
 };
 exports.logoutStudent = logoutStudent;
@@ -114,48 +135,48 @@ const forgotPassword = async (req, res) => {
     });
 };
 exports.forgotPassword = forgotPassword;
-const resetPassword = async (req, res) => {
-    const { token } = req.params;
-    const { password } = req.body;
-    if (!password) {
-        return HttpResponse_1.default.error(res, 400, "New password is required");
-    }
-    const result = await StudentService_1.default.resetPassword(token, password);
-    HttpResponse_1.default.success(res, 200, "Password reset successful", result);
-};
-exports.resetPassword = resetPassword;
 const getCurrentStudent = async (req, res) => {
-    const student = await StudentService_1.default.getCurrentStudent(req.user.id);
+    const student = await StudentService_1.default.getCurrentStudent(req.user.tel);
     if (!student) {
         return HttpResponse_1.default.error(res, 404, "Student profile not found");
     }
     HttpResponse_1.default.success(res, 200, "Profile retrieved successfully", student);
 };
 exports.getCurrentStudent = getCurrentStudent;
-//>>>>>>>>>>>>>
 const changePassword = async (req, res) => {
     if (!req.user) {
         return HttpResponse_1.default.error(res, 401, "Authentication required");
     }
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-        return HttpResponse_1.default.error(res, 400, "Current password and new password are required");
+    const { newPassword } = req.body;
+    const { token } = req.params;
+    const isTokenValid = await StudentService_1.default.verifyToken(token);
+    if (!isTokenValid)
+        throw new Error("token invalid or expired");
+    res.status(200).json({ message: "Token is valid" });
+    if (!newPassword) {
+        return HttpResponse_1.default.error(res, 400, "New password required");
     }
-    if (newPassword.length < 6) {
-        return HttpResponse_1.default.error(res, 400, "New password must be at least 6 characters long");
-    }
-    const student = await StudentService_1.default.getSingleStudent(req.user.id);
-    if (!student) {
-        return HttpResponse_1.default.error(res, 404, "Student not found");
-    }
-    const bcrypt = require("bcrypt");
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, student.password);
+    const student = await prisma.students.findFirst({
+        where: {
+            resetToken: token,
+            resetTokenExpiry: { gte: new Date() },
+        },
+    });
+    const isCurrentPasswordValid = await bcrypt_1.default.compare(newPassword, student.password);
     if (!isCurrentPasswordValid) {
         return HttpResponse_1.default.error(res, 400, "Current password is incorrect");
     }
-    await StudentService_1.default.updateStudent(req.user.id, {
-        ...req.body,
-        password: newPassword,
+    const newPasswordHash = bcrypt_1.default.hash(newPassword, 10);
+    await prisma.students.update({
+        where: {
+            id: req.user?.tel,
+        },
+        data: {
+            ...req.body,
+            password: newPasswordHash,
+            resetToken: null,
+            resetTokenExpiry: null,
+        },
     });
     HttpResponse_1.default.success(res, 200, "Password changed successfully");
 };

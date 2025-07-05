@@ -11,7 +11,8 @@ const studentROutes_1 = __importDefault(require("./routes/studentROutes"));
 const courseRoutes_1 = __importDefault(require("./routes/courseRoutes"));
 const lecturerRoutes_1 = __importDefault(require("./routes/lecturerRoutes"));
 const inviteRoutes_1 = __importDefault(require("./routes/inviteRoutes"));
-const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
+const userRoutes_1 = __importDefault(require("./users/userRoutes"));
+const protectedRoutes_1 = __importDefault(require("./routes/protectedRoutes"));
 const errorHandler_1 = require("../src/middleware/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -36,11 +37,12 @@ class App {
         this.app.use(errorHandler_1.errorHandler);
     }
     routes() {
+        this.app.use("/api/auth", protectedRoutes_1.default);
         this.app.use("/api/students", studentROutes_1.default);
         this.app.use("/api/courses", courseRoutes_1.default);
         this.app.use("/api/lecturer", lecturerRoutes_1.default);
-        this.app.use("/api/auth", authRoutes_1.default);
         this.app.use("/api/email", inviteRoutes_1.default);
+        this.app.use("/api/user", userRoutes_1.default);
         this.app.get("/api/health", (req, res) => {
             res.send("good to go");
         });

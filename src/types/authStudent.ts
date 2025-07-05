@@ -2,10 +2,10 @@ import { Request } from "express";
 
 export interface AuthenticatedRequest extends Request {
 	user?: {
-		id: string;
+		id?: string | " ";
 		tel: string;
-		firstname: string;
-		lastname?: string;
-		email?: string | null;
+		// firstname?: string;
+		// lastname?: string;
+		// email?: string | null;
 	};
 }

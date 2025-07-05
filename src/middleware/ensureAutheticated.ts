@@ -18,10 +18,11 @@ export const ensureAutheticated = async (
 	next: NextFunction,
 ): Promise<void> => {
 	const authHeader = req.headers.authorization;
-	const accessToken = authHeader?.split(" ")[1];
+	let accessToken = authHeader?.split(" ")[1];
 
 	if (!accessToken) {
-		res.status(401).json({ message: "token doesnot exist" });
+		res.status(401).json({ message: "token doesnot exist in header" });
+		accessToken = req.cookies?.accessToken;
 	}
 	try {
 		const decoded = jwt.verify(accessToken!, process.env.ACCESS_TOKEN!) as any;

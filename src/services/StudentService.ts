@@ -23,7 +23,13 @@ const getAllStudents = async () => {
 			tel: true,
 			email: true,
 			created_at: true,
-			updated_at: true,
+		},
+
+		skip: 0,
+		take: 10,
+
+		orderBy: {
+			firstname: "desc",
 		},
 	});
 };
@@ -42,18 +48,6 @@ const getSingleStudent = async (id?: string, tel?: string, email?: string) => {
 					email,
 				},
 			].filter(Boolean),
-		},
-		select: {
-			id: true,
-			firstname: true,
-			lastname: true,
-			tel: true,
-			email: true,
-			password: true,
-			resetToken: true,
-			resetTokenExpiry: true,
-			created_at: true,
-			updated_at: true,
 		},
 	});
 };
@@ -87,13 +81,6 @@ const createStudent = async (studentData: StudentData) => {
 			email,
 			password: hashedPassword,
 		},
-		select: {
-			id: true,
-			firstname: true,
-			lastname: true,
-			tel: true,
-			email: true,
-		},
 	});
 
 	try {
@@ -108,25 +95,20 @@ const updateStudent = async (id: string, studentData: StudentData) => {
 	const updateData: any = {
 		updated_at: new Date(),
 	};
-
+	console.log("setting new details");
 	if (studentData.firstname) updateData.firstname = studentData.firstname;
 	if (studentData.lastname) updateData.lastname = studentData.lastname;
 	if (studentData.tel) updateData.tel = studentData.tel;
 	if (studentData.email) updateData.email = studentData.email;
 	if (studentData.password) {
-		updateData.password = await bcrypt.hash(studentData.password, 10);
+		console.log("password hashing");
+		updateData.password = await bcrypt.hash(studentData.password, 2);
+		console.log("password hashed success");
 	}
 
-	return await prisma.students.update({
+	await prisma.students.update({
 		where: { id },
 		data: updateData,
-		select: {
-			id: true,
-			firstname: true,
-			lastname: true,
-			tel: true,
-			email: true,
-		},
 	});
 };
 
@@ -176,19 +158,17 @@ const loginStudent = async (tel: string, password: string) => {
 		{
 			id: student.id,
 			tel: student.tel,
-			firstname: student.firstname.concat(student.lastname),
+			firstname: student.firstname!.concat(student.lastname!),
 		},
 		process.env.ACCESS_TOKEN!,
 		{
-			expiresIn: "1h",
+			expiresIn: "1m",
 		},
 	);
 	return {
 		token,
 		user: {
-			id: student.id,
-			tel: student.tel,
-			firstname: student.firstname.concat(student.lastname),
+			firstname: student.firstname!.concat(student.lastname!),
 		},
 	};
 };
@@ -223,40 +203,38 @@ const generateResetToken = async (email: string) => {
 
 	if (!student) return "No account with that email";
 
+	const resetToken = crypto.randomBytes(64).toString("hex");
+
 	const getToken = await prisma.students.update({
 		where: { email },
 		data: {
-			resetToken: crypto.randomBytes(64).toString("hex"),
-			resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+			resetToken: crypto.createHash("sha256").update(resetToken).digest("hex"),
+			resetTokenExpiry: new Date(Date.now() + 2 * 60 * 60 * 1000),
+		},
+		select: {
+			resetToken: true,
+			resetTokenExpiry: true,
 		},
 	});
+	console.log(resetToken, " ", " ", getToken.resetToken);
 
-	return getToken.resetToken;
+	return getToken.resetToken, getToken.resetToken;
 };
 
-const resetPassword = async (password: string, newPassword: string) => {
-	if (!password || !newPassword) return "All fields mandatory";
-
-	const student = await prisma.students.findFirst({ where: { password } });
-
-	if (!student) {
-		throw new Error("incorrect password, student with it not found");
-	}
-
-	const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-	await prisma.students.update({
-		where: { id: student.id },
-		data: {
-			password: hashedPassword,
+const verifyToken = async (resetToken: string) => {
+	const findToken = await prisma.students.findFirst({
+		where: {
+			resetToken,
+			resetTokenExpiry: { gte: new Date() },
 		},
 	});
-	return "Password reset successfully";
+	return findToken?.resetToken;
 };
 
 export default {
 	validateStudentExists,
 	getAllStudents,
+	verifyToken,
 	getSingleStudent,
 	getStudentCount,
 	loginStudent,
@@ -266,5 +244,4 @@ export default {
 	searchStudents,
 	getCurrentStudent,
 	generateResetToken,
-	resetPassword,
 };

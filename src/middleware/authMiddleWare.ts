@@ -47,7 +47,6 @@ export const authenticate = async (
 			return;
 		}
 
-		req.user = user;
 		next();
 	} catch (error) {
 		res.status(401).json({

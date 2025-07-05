@@ -57,9 +57,18 @@ async function sendPasswordResetEmail(to, lastame = "") {
     await sendWelcomeEmail(to);
     return sendEmail({ from, to, subject, html });
 }
+async function sendPasswordResetOTPEmail(email) {
+    if (!email)
+        throw new Error("provide your email");
+    const account = prisma.students.findUnique({ where: { email } });
+    if (!account)
+        throw new Error("Account not found, provide a valid Email");
+    //create otp and return it
+}
 exports.default = {
     sendEmail,
     sendInvitationEmail,
     sendPasswordResetEmail,
     sendWelcomeEmail,
+    sendPasswordResetOTPEmail,
 };

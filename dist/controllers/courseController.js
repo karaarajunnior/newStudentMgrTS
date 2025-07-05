@@ -36,18 +36,18 @@ const getStudentCourses = async (req, res) => {
     });
 };
 const getCourseByCode = async (req, res) => {
-    const { code } = req.params;
-    if (!code) {
+    const { student_id } = req.params;
+    if (!student_id) {
         return HttpResponse_1.default.error(res, 400, "Course code is required");
     }
-    const course = await CourseService_1.default.getCourseByCode(code);
+    const course = await CourseService_1.default.getCourseByCode(student_id);
     if (!course) {
         return HttpResponse_1.default.error(res, 404, "Course not found");
     }
     HttpResponse_1.default.success(res, 200, "Course retrieved successfully", course);
 };
 const createCourse = async (req, res) => {
-    const { course_unit, code, lecturer_id } = req.body;
+    const { course_unit, code, lecturer_id, student_id } = req.body;
     if (!course_unit || !code) {
         return HttpResponse_1.default.error(res, 400, "Course unit and code are required");
     }
@@ -56,6 +56,7 @@ const createCourse = async (req, res) => {
             course_unit,
             code,
             lecturer_id,
+            student_id,
         });
         HttpResponse_1.default.success(res, 201, "Course created successfully", {
             id: result.id,

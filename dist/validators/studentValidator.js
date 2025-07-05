@@ -8,7 +8,7 @@ const joi_1 = __importDefault(require("joi"));
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 exports.validateStudent = (0, express_async_handler_1.default)((req, res, next) => {
     const schema = joi_1.default.object({
-        id: joi_1.default.number().required(),
+        id: joi_1.default.string().required(),
         firstname: joi_1.default.string().min(2).max(50).required(),
         lastname: joi_1.default.string().min(2).max(50).required(),
         tel: joi_1.default.string().min(10).max(15).required(),
