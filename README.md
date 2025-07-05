@@ -23,7 +23,10 @@ DATABASE_URL = "mysql://root:123@127.0.0.1:3306/student_mgr"
 
  db access: prisma ORM,
  email:resend,
-  node TS  express jwt
+  node TS  express jwt 
+  file upload:multer
+  caching:redis
+  containerisation:docker
 
 <--FEATURES-->
 
